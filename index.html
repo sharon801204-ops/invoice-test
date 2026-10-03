@@ -37,6 +37,37 @@
   .msg.ok { background:#e4f5ec; color:var(--ok); } .msg.warn { background:#fdf1e2; color:var(--warn); } .msg.bad { background:#fde8e6; color:var(--bad); }
   .row { display:flex; justify-content:space-between; gap:8px; align-items:center; }
   .sticky { position:sticky; bottom:0; background:var(--bg); padding:8px 0 calc(8px + env(safe-area-inset-bottom)); }
+  body.wide main { max-width:none; }
+  #rep-wrap { overflow-x:auto; padding-bottom:20px; }
+  .rp { background:#fff; color:#000; margin:12px auto; box-shadow:0 1px 8px rgba(0,0,0,.18); padding:8mm; box-sizing:border-box;
+        font-family:"DFKai-SB","BiauKai","標楷體","Noto Serif TC",serif; font-size:11pt; line-height:1.35; }
+  .rp-land { width:297mm; } .rp-port { width:210mm; }
+  .rp-title { text-align:center; font-size:18pt; font-weight:700; }
+  .rp-title2 { text-align:center; font-size:16pt; font-weight:700; margin:2mm 0 3mm; }
+  .rp-period { font-weight:700; margin-bottom:2px; } .rp-period span { font-weight:400; margin-left:12px; }
+  table.rp-t { width:100%; border-collapse:collapse; border:2px solid #000; font-size:10.5pt; table-layout:auto; }
+  .rp-t th, .rp-t td { border:1px solid #000; padding:2px 4px; } .rp-t th { font-weight:700; text-align:center; }
+  .rp-t td.c { text-align:center; } .rp-t td.r { text-align:right; } .rp-t .b { font-weight:700; }
+  .rp-total td { font-weight:700; border-top:2px solid #000; }
+  .rp-legend td { border-top:0; padding:6px; text-align:left; font-size:11pt; }
+  .rp-sign { display:flex; gap:70mm; margin:12mm 0 0 30mm; font-weight:700; font-size:12pt; }
+  .rp-band { background:#dbe8f5; } .rp-cat td { background:#e8f0fa; } .rp-band2 { background:#fbe2d5; } .rp-calc td { background:#fdeee6; }
+  .rp-t .neg { color:#c00000; }
+  .rp-box { display:flex; gap:4px; align-items:flex-start; font-size:11pt; cursor:pointer; } .rp-box input { width:18px; height:18px; margin-top:2px; }
+  .rp-foot td { vertical-align:top; height:20mm; }
+  .rp-t thead { display:table-header-group; } .rp-t tr { page-break-inside:avoid; }
+  @page land { size:A4 landscape; margin:7mm; }
+  @page port { size:A4 portrait; margin:7mm; }
+  .rp-land { page:land; } .rp-port { page:port; page-break-after:always; }
+  @media print {
+    body { background:#fff; }
+    main { max-width:none; padding:0; }
+    main > section:not(#v-reports) { display:none !important; }
+    .noprint { display:none !important; }
+    #rep-wrap { overflow:visible; padding:0; }
+    .rp { margin:0; box-shadow:none; padding:0; }
+    .rp-land { width:auto; } .rp-port { width:auto; }
+  }
   .tbl { width:100%; border-collapse:collapse; margin-top:10px; font-size:17px; }
   .tbl th { text-align:left; font-size:14px; color:var(--muted); font-weight:500; padding:4px 6px; border-bottom:1px solid var(--line); }
   .tbl td { padding:8px 6px; border-bottom:1px solid var(--line); }
@@ -75,6 +106,7 @@
   <button id="btn-scan">📷 掃發票</button>
   <button id="btn-manual" class="sec">✏️ 手動記一筆（沒有發票或掃不出來）</button>
   <button id="btn-records" class="sec">📋 看本月紀錄</button>
+  <button id="btn-reports" class="sec">🖨 產出報表（列印／存成 PDF）</button>
 </section>
 
 <!-- 掃描 -->
@@ -136,11 +168,34 @@
   <button id="btn-rec-back" class="sec">返回首頁</button>
 </section>
 
+<!-- 報表 -->
+<section id="v-reports" class="hidden">
+  <div class="noprint">
+    <h1>產出報表</h1>
+    <div class="card">
+      <div class="row"><button class="small sec" id="r-prev">◀</button><b id="r-label"></b><button class="small sec" id="r-next">▶</button></div>
+      <label class="f">要印哪一份</label>
+      <div class="seg" id="r-kinds">
+        <button data-rk="shared">共用清單</button><button data-rk="personal">個人購物清單</button><button data-rk="summary">支出明細表</button>
+      </div>
+      <div id="r-whowrap"><label class="f">哪一位住民</label><select id="r-who"></select></div>
+      <label class="f">表頭顯示</label>
+      <select id="r-mode"><option value="code">代號（A、B…）</option><option value="name">姓名</option></select>
+      <div id="r-checks" style="margin-top:10px"></div>
+      <button id="r-print">列印／另存為 PDF</button>
+      <p class="sub" style="margin:8px 0 0">在列印視窗：目的地選「另存為 PDF」可存檔；紙張選 <b>A4</b>；勾選「背景圖形」。個人購物清單要先在畫面上勾好下方三個選項再列印。</p>
+    </div>
+    <button id="r-back" class="sec">返回首頁</button>
+  </div>
+  <div id="rep-wrap"><div id="rep-out"></div></div>
+</section>
+
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script src="config.js"></script>
 <script src="parser.js"></script>
+<script src="report.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

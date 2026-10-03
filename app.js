@@ -3,10 +3,11 @@
   var $ = function (id) { return document.getElementById(id); };
   var API = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || '';
   var pass = '', cfg = null;
-  var VIEWS = ['login', 'home', 'scan', 'edit', 'done', 'records'];
+  var VIEWS = ['login', 'home', 'scan', 'edit', 'done', 'records', 'reports'];
 
   function show(v) {
     VIEWS.forEach(function (x) { $('v-' + x).classList.toggle('hidden', x !== v); });
+    document.body.classList.toggle('wide', v === 'reports');
     window.scrollTo(0, 0);
   }
   function esc(s) {
@@ -497,6 +498,48 @@
     api('void', { id: b.getAttribute('data-id') }).then(function (res) {
       if (!res.ok) alert(res.message || '刪除失敗'); loadRecords(R.period);
     });
+  });
+
+  // ---------- 報表 ----------
+  var RS = { period: '', kind: 'shared', mode: 'code', who: '', data: null, boxes: {} };
+  function periodOfIso(iso) { return String(+iso.slice(0, 4) - 1911) + iso.slice(5, 7); }
+  function shiftPeriod(p, d) {
+    var y = +p.slice(0, 3), m = +p.slice(3) + d;
+    while (m < 1) { m += 12; y--; } while (m > 12) { m -= 12; y++; }
+    return String(y) + (m < 10 ? '0' : '') + m;
+  }
+  function loadReport(period) {
+    RS.period = period; $('r-label').textContent = rocLabel(period);
+    $('rep-out').innerHTML = '<div class="sub" style="padding:20px">讀取中…</div>';
+    api('report', { period: period }).then(function (res) {
+      if (!res.ok) { $('rep-out').innerHTML = ''; alert(res.message || '讀取失敗'); return; }
+      RS.data = res;
+      var sel = $('r-who'); sel.innerHTML = '<option value="">全部住民（每人一頁）</option>' +
+        res.residents.map(function (p) { return '<option value="' + esc(p.code) + '">' + esc(p.name ? p.code + ' ' + p.name : p.code) + '</option>'; }).join('');
+      sel.value = RS.who;
+      $('r-checks').innerHTML = res.checks.map(function (c) { return '<div class="msg ' + (c.ok ? 'ok' : 'bad') + '" style="margin-top:6px">' + (c.ok ? '✔ ' : '✘ ') + esc(c.text) + '</div>'; }).join('');
+      renderReport();
+    });
+  }
+  function renderReport() {
+    var d = RS.data; if (!d) return;
+    [].forEach.call($('r-kinds').querySelectorAll('button'), function (b) { b.classList.toggle('on', b.getAttribute('data-rk') === RS.kind); });
+    $('r-whowrap').classList.toggle('hidden', RS.kind !== 'personal');
+    $('rep-out').innerHTML = RS.kind === 'shared' ? Report.shared(d, RS.mode)
+      : RS.kind === 'personal' ? Report.personal(d, RS.mode, RS.boxes, RS.who) : Report.summary(d, RS.mode);
+  }
+  $('btn-reports').onclick = function () { show('reports'); loadReport(RS.period || periodOfIso(cfg.today)); };
+  $('r-back').onclick = goHome;
+  $('r-prev').onclick = function () { loadReport(shiftPeriod(RS.period, -1)); };
+  $('r-next').onclick = function () { loadReport(shiftPeriod(RS.period, 1)); };
+  $('r-kinds').addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (!b) return; RS.kind = b.getAttribute('data-rk'); renderReport(); });
+  $('r-who').onchange = function () { RS.who = $('r-who').value; renderReport(); };
+  $('r-mode').onchange = function () { RS.mode = $('r-mode').value; renderReport(); };
+  $('r-print').onclick = function () { window.print(); };
+  $('rep-out').addEventListener('change', function (ev) {
+    var t = ev.target, k = t.getAttribute && t.getAttribute('data-box'); if (!k) return;
+    var parts = k.split('|'), key = parts[0] + '|' + parts[1];
+    RS.boxes[key] = RS.boxes[key] || {}; RS.boxes[key][parts[2]] = t.checked;
   });
 
   // ---------- 啟動 ----------
