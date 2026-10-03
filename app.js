@@ -235,6 +235,18 @@
     }
   }
 
+  function customSum(L) {
+    var s = 0;
+    Object.keys(L.custom || {}).forEach(function (k) { s += L.custom[k] > 0 ? L.custom[k] : 0; });
+    return s;
+  }
+  function customCls(L) { return customSum(L) === L.amount && L.amount > 0 ? 'ok' : 'warn'; }
+  function customText(L) {
+    var s = customSum(L), d = L.amount - s;
+    if (!(L.amount > 0)) return '請先在下面填這一列的金額';
+    return d === 0 ? '合計 ' + money(s) + '　等於金額 ✔' : '合計 ' + money(s) + '　' + (d > 0 ? '還差 ' : '多了 ') + money(Math.abs(d));
+  }
+
   function renderLines() {
     var act = activeRoster(E.date);
     var residents = act.filter(function (p) { return p.role === '住民'; });
@@ -252,6 +264,14 @@
           html += '<button data-act="person" data-v="' + esc(p.code) + '" class="' + (L.person === p.code ? 'on' : '') + '">' + esc(plabel(p)) + '</button>';
         });
         html += '</div>';
+      } else if (L.type === '共同' && L.custom) {
+        html += '<label class="f">自訂每人金額（空白或 0＝不分攤）</label>';
+        act.forEach(function (p) {
+          html += '<div class="row" style="margin-top:6px"><span>' + esc(plabel(p)) + '</span>' +
+            '<input type="number" inputmode="numeric" data-custom="' + esc(p.code) + '" style="width:130px" value="' + (L.custom[p.code] || '') + '"></div>';
+        });
+        html += '<div class="msg ' + customCls(L) + '" data-customsum style="margin-top:8px">' + customText(L) + '</div>';
+        html += '<button class="small sec" data-act="even" style="margin-top:8px">改回平均分</button>';
       } else if (L.type === '共同') {
         var ti = tailInfo(L);
         html += '<label class="f">誰分攤（點一下可取消或加入）</label><div class="chips">';
@@ -269,6 +289,7 @@
           }
           html += '</div>';
         }
+        html += '<button class="small sec" data-act="custom" style="margin-top:8px">自訂每人金額（不平均分）</button>';
       }
       html += '<label class="f">分類</label><div class="grid">';
       cats.forEach(function (c) {
@@ -305,12 +326,32 @@
       L.participants = cur; L.tail = '';
     }
     else if (act === 'del') { E.lines.splice(i, 1); }
+    else if (act === 'custom') {
+      var ti2 = tailInfo(L), cu = {};
+      ti2.parts.forEach(function (c) { cu[c] = ti2.base; });
+      if (ti2.parts.length && ti2.tailAmt) {
+        var tl2 = L.tail && ti2.parts.indexOf(L.tail) >= 0 ? L.tail : ti2.parts[ti2.parts.length - 1];
+        cu[tl2] += ti2.tailAmt;
+      }
+      L.custom = cu;
+    }
+    else if (act === 'even') {
+      L.participants = Object.keys(L.custom || {}).filter(function (c) { return L.custom[c] > 0; });
+      if (!L.participants.length) L.participants = null;
+      L.custom = null; L.tail = '';
+    }
     else return;
     renderLines();
   });
   $('e-lines').addEventListener('input', function (ev) {
     var t = ev.target, card = t.closest('.line'); if (!card) return;
-    var L = E.lines[+card.getAttribute('data-i')], f = t.getAttribute('data-field');
+    var L = E.lines[+card.getAttribute('data-i')], f = t.getAttribute('data-field'), cc = t.getAttribute('data-custom');
+    if (cc) {
+      L.custom[cc] = t.value === '' ? 0 : Number(t.value);
+      var box = card.querySelector('[data-customsum]');
+      if (box) { box.className = 'msg ' + customCls(L); box.textContent = customText(L); }
+      return;
+    }
     if (f === 'item') L.item = t.value;
     else if (f === 'amount') { L.amount = t.value === '' ? 0 : Number(t.value); updateSum(); }
   });
@@ -327,6 +368,7 @@
     E.lines.forEach(function (L) {
       if (L.person && act.indexOf(L.person) < 0) L.person = '';
       if (L.participants) L.participants = L.participants.filter(function (c) { return act.indexOf(c) >= 0; });
+      if (L.custom) Object.keys(L.custom).forEach(function (c) { if (act.indexOf(c) < 0) delete L.custom[c]; });
     });
     renderLines();
   });
@@ -356,14 +398,27 @@
       var L = E.lines[i], at = '第 ' + (i + 1) + ' 列：';
       if (!L.type) return { error: at + '請選「個人」或「共用」' };
       if (L.type === '個人' && !L.person) return { error: at + '請選哪一位住民' };
-      var parts = resolvedParts(L);
+      var parts = resolvedParts(L), custom = null;
+      if (L.type === '共同' && L.custom) {
+        custom = {}; parts = [];
+        Object.keys(L.custom).forEach(function (c) {
+          var v = L.custom[c];
+          if (v > 0) { custom[c] = v; parts.push(c); }
+          else if (v < 0 || (v && Math.floor(v) !== v)) custom = false;
+        });
+        if (custom === false) return { error: at + '每人金額要是 0 以上的整數' };
+        if (!parts.length) return { error: at + '請至少填一位的金額' };
+        if (customSum(L) !== L.amount) return { error: at + '每人金額加總 ' + money(customSum(L)) + '，要等於 ' + money(L.amount) };
+      }
       if (L.type === '共同' && !parts.length) return { error: at + '請選誰分攤' };
       if (!L.catNo) return { error: at + '請選分類' };
       if (!L.item.trim()) return { error: at + '請填摘要' };
       if (!(L.amount > 0) || Math.floor(L.amount) !== L.amount) return { error: at + '金額要是大於 0 的整數' };
-      lines.push({ type: L.type, date: date, catNo: L.catNo, item: L.item.trim(), place: place, amount: L.amount,
+      var out = { type: L.type, date: date, catNo: L.catNo, item: L.item.trim(), place: place, amount: L.amount,
         person: L.type === '個人' ? L.person : '', participants: L.type === '共同' ? parts : [],
-        tail: L.type === '共同' ? (L.tail && parts.indexOf(L.tail) >= 0 ? L.tail : parts[parts.length - 1]) : '' });
+        tail: L.type === '共同' ? (L.tail && parts.indexOf(L.tail) >= 0 ? L.tail : parts[parts.length - 1]) : '' };
+      if (custom) out.custom = custom;
+      lines.push(out);
     }
     var req = { lines: lines };
     if (E.invoice) {
