@@ -68,6 +68,34 @@
     .rp { margin:0; box-shadow:none; padding:0; }
     .rp-land { width:auto; } .rp-port { width:auto; }
   }
+  .hc-row { display:flex; gap:12px; margin-top:10px; } .hc-row > div { flex:1; }
+  .hc-n { font-size:24px; font-weight:700; }
+  #o-body { max-width:1100px; }
+  .ov-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-bottom:12px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; }
+  .kpi .l { font-size:14px; color:var(--muted); } .kpi .v { font-size:28px; font-weight:700; margin-top:2px; line-height:1.2; }
+  .kpi.warn { background:#fdf1e2; border-color:#f1d3a8; } .kpi.warn .v { color:var(--warn); }
+  .kpi.ok .v { color:var(--ok); } .kpi.bad { background:#fde8e6; border-color:#f3b8b2; } .kpi.bad .v { color:var(--bad); }
+  .ov-two { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:12px; margin-bottom:12px; }
+  .ov-card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; overflow-x:auto; }
+  .ov-card h3 { margin:0 0 10px; font-size:18px; }
+  .ov-t { width:100%; border-collapse:collapse; font-size:16px; min-width:560px; }
+  .ov-t th { text-align:right; font-size:14px; font-weight:500; color:var(--muted); padding:6px 8px; border-bottom:2px solid var(--line); }
+  .ov-t th:first-child, .ov-t td:first-child { text-align:left; }
+  .ov-t td { text-align:right; padding:9px 8px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums; }
+  .ov-t .neg { color:var(--bad); font-weight:700; } .ov-t .pos { font-weight:700; }
+  .ov-t .flag { display:inline-block; margin-left:6px; background:#fde8e6; color:var(--bad); border-radius:8px; padding:1px 8px; font-size:13px; font-weight:500; }
+  .ov-t tr.staff td { color:var(--muted); }
+  .cb { display:grid; grid-template-columns:96px 1fr 120px; gap:10px; align-items:center; margin:7px 0; font-size:16px; }
+  .cb .bar { height:14px; background:var(--chip); border-radius:7px; overflow:hidden; } .cb .bar i { display:block; height:100%; background:#1a6ed8; border-radius:7px; }
+  .cb .a { text-align:right; font-variant-numeric:tabular-nums; } .cb .a span { color:var(--muted); font-size:13px; margin-left:6px; }
+  .trend { display:flex; align-items:flex-end; gap:14px; height:190px; padding-top:8px; }
+  .trend .col { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:44px; }
+  .trend .stack { width:100%; max-width:56px; display:flex; flex-direction:column; justify-content:flex-end; border-radius:6px 6px 0 0; overflow:hidden; }
+  .trend .stack i { display:block; } .trend .tp { background:#1a6ed8; } .trend .ts { background:#8fd0c6; }
+  .trend .lab { font-size:13px; color:var(--muted); margin-top:6px; } .trend .num { font-size:12px; color:var(--text); margin-bottom:3px; }
+  .legend { display:flex; gap:16px; font-size:14px; color:var(--muted); margin-top:10px; }
+  .legend i { display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
   .tbl { width:100%; border-collapse:collapse; margin-top:10px; font-size:17px; }
   .tbl th { text-align:left; font-size:14px; color:var(--muted); font-weight:500; padding:4px 6px; border-bottom:1px solid var(--line); }
   .tbl td { padding:8px 6px; border-bottom:1px solid var(--line); }
@@ -107,6 +135,15 @@
   <button id="btn-manual" class="sec">✏️ 手動記一筆（沒有發票或掃不出來）</button>
   <button id="btn-records" class="sec">📋 看本月紀錄</button>
   <button id="btn-reports" class="sec">🖨 產出報表（列印／存成 PDF）</button>
+  <button id="btn-overview" class="sec">📊 總覽（月底核對用）</button>
+  <div class="card" id="home-card" style="margin-top:14px">
+    <div class="sub" id="hc-title" style="margin:0">本月已登記</div>
+    <div class="hc-row">
+      <div><div class="hc-n" id="hc-n">–</div><div class="sub" style="margin:0">筆</div></div>
+      <div><div class="hc-n" id="hc-s" style="color:#0b6e5f">–</div><div class="sub" style="margin:0">共用</div></div>
+      <div><div class="hc-n" id="hc-p" style="color:var(--brand)">–</div><div class="sub" style="margin:0">個人</div></div>
+    </div>
+  </div>
 </section>
 
 <!-- 掃描 -->
@@ -166,6 +203,15 @@
   <div class="card" id="rec-sum"></div>
   <div class="card" id="rec-list"></div>
   <button id="btn-rec-back" class="sec">返回首頁</button>
+</section>
+
+<!-- 總覽 -->
+<section id="v-overview" class="hidden">
+  <div class="top"><h1>總覽</h1><button class="link" id="o-back">返回首頁</button></div>
+  <div class="row" style="margin:8px 0 12px;max-width:420px">
+    <button class="small sec" id="o-prev">◀</button><b id="o-label" style="font-size:20px"></b><button class="small sec" id="o-next">▶</button>
+  </div>
+  <div id="o-body"></div>
 </section>
 
 <!-- 報表 -->

@@ -3,11 +3,11 @@
   var $ = function (id) { return document.getElementById(id); };
   var API = (window.APP_CONFIG && window.APP_CONFIG.API_URL) || '';
   var pass = '', cfg = null;
-  var VIEWS = ['login', 'home', 'scan', 'edit', 'done', 'records', 'reports'];
+  var VIEWS = ['login', 'home', 'scan', 'edit', 'done', 'records', 'reports', 'overview'];
 
   function show(v) {
     VIEWS.forEach(function (x) { $('v-' + x).classList.toggle('hidden', x !== v); });
-    document.body.classList.toggle('wide', v === 'reports');
+    document.body.classList.toggle('wide', v === 'reports' || v === 'overview');
     window.scrollTo(0, 0);
   }
   function esc(s) {
@@ -67,6 +67,15 @@
   function goHome() {
     $('home-sub').textContent = '今天是 ' + rocDate(cfg.today);
     show('home');
+    // 本月統計卡（非同步載入，失敗就維持「–」）
+    var per = String(+cfg.today.slice(0, 4) - 1911) + cfg.today.slice(5, 7);
+    $('hc-title').textContent = '本月（' + rocLabel(per) + '）已登記';
+    api('list', { period: per }).then(function (res) {
+      if (!res.ok) return;
+      $('hc-n').textContent = res.rows.length;
+      $('hc-s').textContent = money(res.sumShared);
+      $('hc-p').textContent = money(res.sumPersonal);
+    });
   }
 
   // ---------- 掃描 ----------
@@ -541,6 +550,71 @@
     var parts = k.split('|'), key = parts[0] + '|' + parts[1];
     RS.boxes[key] = RS.boxes[key] || {}; RS.boxes[key][parts[2]] = t.checked;
   });
+
+  // ---------- 總覽 ----------
+  var OV = { period: '' };
+  function loadOverview(period) {
+    OV.period = period; $('o-label').textContent = rocLabel(period);
+    $('o-body').innerHTML = '<div class="sub" style="padding:20px">讀取中…</div>';
+    api('overview', { period: period }).then(function (o) {
+      if (!o.ok) { $('o-body').innerHTML = ''; alert(o.message || '讀取失敗'); return; }
+      renderOverview(o);
+    });
+  }
+  function pdisp(p) { return p.name ? p.code + ' ' + p.name : p.code; }
+  function renderOverview(o) {
+    var total = o.sumShared + o.sumPersonal, bad = o.checks.filter(function (c) { return !c.ok; });
+    var h = '<div class="ov-grid">' +
+      '<div class="kpi"><div class="l">登記筆數</div><div class="v">' + o.count + '</div></div>' +
+      '<div class="kpi"><div class="l">共用合計</div><div class="v">' + money(o.sumShared) + '</div></div>' +
+      '<div class="kpi"><div class="l">個人合計</div><div class="v">' + money(o.sumPersonal) + '</div></div>' +
+      '<div class="kpi"><div class="l">本月支出總計</div><div class="v">' + money(total) + '</div></div>' +
+      '<div class="kpi ' + (o.negative ? 'warn' : 'ok') + '"><div class="l">餘額不足的住民</div><div class="v">' + o.negative + ' 位</div></div>' +
+      '<div class="kpi ' + (bad.length ? 'bad' : 'ok') + '"><div class="l">對帳</div><div class="v">' + (bad.length ? '✘ ' + bad.length + ' 項異常' : '✔ 全部通過') + '</div></div></div>';
+
+    // 住民表
+    h += '<div class="ov-card" style="margin-bottom:12px"><h3>每位住民的收支與餘額</h3><table class="ov-t"><tr><th>住民</th><th>個人支出</th><th>共用分攤</th><th>本月支出</th><th>本月收入</th><th>上期結餘</th><th>累積餘額</th></tr>';
+    o.people.forEach(function (p) {
+      h += '<tr><td><b>' + esc(pdisp(p)) + '</b></td><td>' + money(p.personal) + '</td><td>' + money(p.shared) + '</td><td>' + money(p.total) +
+        '</td><td>' + money(p.income) + '</td><td>' + money(p.opening) + '</td><td class="' + (p.closing < 0 ? 'neg' : 'pos') + '">' +
+        (p.closing < 0 ? '−' + money(-p.closing) + '<span class="flag">不足，需補收</span>' : money(p.closing)) + '</td></tr>';
+    });
+    o.staff.forEach(function (p) {
+      h += '<tr class="staff"><td>' + esc(pdisp(p)) + '</td><td>–</td><td>' + money(p.shared) + '</td><td>' + money(p.shared) + '</td><td>–</td><td>–</td><td>–</td></tr>';
+    });
+    h += '</table></div>';
+
+    // 分類占比 ＋ 趨勢
+    var cats = o.cats.filter(function (c) { return c.total > 0; }).sort(function (a, b) { return b.total - a.total; });
+    var maxc = cats.length ? cats[0].total : 1;
+    h += '<div class="ov-two"><div class="ov-card"><h3>各分類支出</h3>';
+    if (!cats.length) h += '<div class="sub">這個月還沒有支出。</div>';
+    cats.forEach(function (c) {
+      var pct = total ? Math.round(c.total * 100 / total) : 0;
+      h += '<div class="cb"><div>' + esc(c.no + ' ' + c.name) + '</div><div class="bar"><i style="width:' + Math.max(2, Math.round(c.total * 100 / maxc)) + '%"></i></div><div class="a">' + money(c.total) + '<span>' + pct + '%</span></div></div>';
+    });
+    h += '</div><div class="ov-card"><h3>近 6 個月（共用＋個人）</h3>';
+    var maxs = 1; o.series.forEach(function (s) { maxs = Math.max(maxs, s.shared + s.personal); });
+    h += '<div class="trend">';
+    o.series.forEach(function (s) {
+      var tot = s.shared + s.personal, hh = Math.round(tot * 140 / maxs);
+      var hp = tot ? Math.round(hh * s.personal / tot) : 0, hs = hh - hp;
+      h += '<div class="col"><div class="num">' + (tot ? money(tot) : '') + '</div><div class="stack" style="height:' + hh + 'px"><i class="ts" style="height:' + hs + 'px"></i><i class="tp" style="height:' + hp + 'px"></i></div><div class="lab">' + esc(s.label) + '</div></div>';
+    });
+    h += '</div><div class="legend"><span><i style="background:#1a6ed8"></i>個人</span><span><i style="background:#8fd0c6"></i>共用</span></div></div></div>';
+
+    // 對帳
+    h += '<div class="ov-card"><h3>對帳檢查</h3>' + o.checks.map(function (c) {
+      return '<div class="msg ' + (c.ok ? 'ok' : 'bad') + '" style="margin-top:6px">' + (c.ok ? '✔ ' : '✘ ') + esc(c.text) + '</div>';
+    }).join('') + '<div style="display:flex;gap:10px;margin-top:12px;max-width:420px"><button class="sec" id="o-to-report">前往產出這個月的報表</button><button class="sec" id="o-to-records">看這個月的紀錄</button></div></div>';
+    $('o-body').innerHTML = h;
+    $('o-to-report').onclick = function () { RS.period = OV.period; show('reports'); loadReport(OV.period); };
+    $('o-to-records').onclick = function () { show('records'); loadRecords(OV.period); };
+  }
+  $('btn-overview').onclick = function () { show('overview'); loadOverview(OV.period || periodOfIso(cfg.today)); };
+  $('o-back').onclick = goHome;
+  $('o-prev').onclick = function () { loadOverview(shiftPeriod(OV.period, -1)); };
+  $('o-next').onclick = function () { loadOverview(shiftPeriod(OV.period, 1)); };
 
   // ---------- 啟動 ----------
   var saved = '';
