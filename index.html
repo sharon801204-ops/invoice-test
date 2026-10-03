@@ -2,251 +2,139 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>發票掃描測試</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>后里家收費登記</title>
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --muted:#5b6475; --brand:#1a6ed8; --ok:#18794e; --warn:#b54708; --line:#dfe3ea; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font:18px/1.6 -apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif; }
-  main { max-width:560px; margin:0 auto; padding:16px; }
-  h1 { font-size:22px; margin:8px 0 4px; }
-  p.sub { margin:0 0 16px; color:var(--muted); font-size:16px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
-  button, label.btn { display:block; width:100%; padding:16px; border:0; border-radius:12px; background:var(--brand); color:#fff; font-size:20px; font-weight:600; text-align:center; cursor:pointer; margin-top:10px; }
-  button.sec, label.btn.sec { background:#e8eefb; color:var(--brand); }
-  button:disabled { opacity:.5; }
-  #video-wrap { position:relative; display:none; margin-top:10px; }
-  video { width:100%; border-radius:12px; background:#000; }
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1d2330; --muted:#5b6475; --brand:#1a6ed8; --ok:#18794e; --warn:#b54708; --bad:#b42318; --line:#dfe3ea; --chip:#eef2f8; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:18px/1.5 -apple-system,"Noto Sans TC","Microsoft JhengHei",sans-serif; -webkit-text-size-adjust:100%; }
+  main { max-width:560px; margin:0 auto; padding:14px 14px 80px; }
+  h1 { font-size:22px; margin:6px 0 2px; }
+  h2 { font-size:19px; margin:0 0 8px; }
+  .sub { color:var(--muted); font-size:15px; margin:0 0 12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .hidden { display:none !important; }
+  button, .btn { display:block; width:100%; padding:15px; border:0; border-radius:12px; background:var(--brand); color:#fff; font-size:19px; font-weight:600; text-align:center; margin-top:10px; cursor:pointer; }
+  button.sec, .btn.sec { background:#e8eefb; color:var(--brand); }
+  button.bad { background:#fde8e6; color:var(--bad); }
+  button.small { width:auto; display:inline-block; padding:8px 12px; font-size:15px; margin:0; }
+  button:disabled { opacity:.45; }
+  input[type=text], input[type=password], input[type=date], input[type=number], select { width:100%; padding:12px; border:1px solid #c9cfda; border-radius:10px; font-size:18px; background:#fff; }
+  label.f { display:block; font-size:15px; color:var(--muted); margin:10px 0 4px; }
+  .seg { display:flex; gap:8px; }
+  .seg button, .chips button, .grid button { margin:0; }
+  .seg button { flex:1; background:var(--chip); color:var(--text); padding:12px; }
+  .seg button.on { background:var(--brand); color:#fff; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .chips button { width:auto; padding:10px 14px; background:var(--chip); color:var(--text); font-size:17px; font-weight:500; }
+  .chips button.on { background:var(--brand); color:#fff; }
+  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin-top:6px; }
+  .grid button { background:var(--chip); color:var(--text); padding:11px 6px; font-size:16px; font-weight:500; }
+  .grid button.on { background:var(--brand); color:#fff; }
+  .line { border:1px solid var(--line); border-radius:12px; padding:12px; margin-top:10px; background:#fbfcfe; }
+  .msg { margin-top:10px; padding:10px 12px; border-radius:10px; background:#eef2f8; font-size:16px; }
+  .msg.ok { background:#e4f5ec; color:var(--ok); } .msg.warn { background:#fdf1e2; color:var(--warn); } .msg.bad { background:#fde8e6; color:var(--bad); }
+  .row { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+  .sticky { position:sticky; bottom:0; background:var(--bg); padding:8px 0 calc(8px + env(safe-area-inset-bottom)); }
+  .rec { border-bottom:1px solid var(--line); padding:8px 0; font-size:16px; }
+  .rec .t { color:var(--muted); font-size:14px; }
+  .big { font-size:30px; font-weight:700; }
+  #video-wrap { position:relative; margin-top:10px; } video { width:100%; border-radius:12px; background:#000; }
   .hint { position:absolute; left:0; right:0; bottom:8px; text-align:center; color:#fff; text-shadow:0 1px 3px #000; font-size:17px; }
-  .status { margin-top:10px; padding:10px 12px; border-radius:10px; background:#eef2f8; font-size:17px; }
-  .status.ok { background:#e4f5ec; color:var(--ok); }
-  .status.warn { background:#fdf1e2; color:var(--warn); }
-  table { width:100%; border-collapse:collapse; font-size:17px; }
-  td, th { text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
-  td.num, th.num { text-align:right; white-space:nowrap; }
-  .big { font-size:28px; font-weight:700; }
-  details { margin-top:10px; font-size:15px; color:var(--muted); }
-  textarea { width:100%; min-height:90px; font-size:15px; }
   input[type=file] { display:none; }
-  .small { font-size:15px; color:var(--muted); }
+  .top { display:flex; justify-content:space-between; align-items:center; }
+  .link { background:none; color:var(--muted); font-size:14px; width:auto; padding:6px; margin:0; font-weight:400; text-decoration:underline; }
 </style>
 </head>
 <body>
 <main>
-  <h1>發票掃描測試</h1>
-  <p class="sub">這是測試版，只驗證手機能不能掃出發票內容，<b>不會儲存任何資料</b>。</p>
 
+<!-- 登入 -->
+<section id="v-login" class="hidden">
+  <h1>后里家收費登記</h1>
+  <p class="sub">請輸入通關密碼</p>
   <div class="card">
-    <button id="btn-cam">① 打開鏡頭掃發票</button>
-    <div id="video-wrap">
-      <video id="video" playsinline muted></video>
-      <div class="hint">把發票<b>左邊的 QR code</b>對準畫面</div>
-    </div>
-    <button id="btn-stop" class="sec" style="display:none">關閉鏡頭</button>
-    <label class="btn sec" for="file">② 鏡頭打不開？改用「拍照」</label>
+    <input id="pass" type="password" placeholder="通關密碼" autocomplete="current-password">
+    <label class="f"><input id="remember" type="checkbox" checked> 在這支手機記住密碼</label>
+    <button id="btn-login">進入</button>
+    <div id="login-msg" class="msg hidden"></div>
+  </div>
+</section>
+
+<!-- 首頁 -->
+<section id="v-home" class="hidden">
+  <div class="top"><h1>后里家收費登記</h1><button class="link" id="btn-logout">登出</button></div>
+  <p class="sub" id="home-sub"></p>
+  <button id="btn-scan">📷 掃發票</button>
+  <button id="btn-manual" class="sec">✏️ 手動記一筆（沒有發票或掃不出來）</button>
+  <button id="btn-records" class="sec">📋 看本月紀錄</button>
+</section>
+
+<!-- 掃描 -->
+<section id="v-scan" class="hidden">
+  <h1>掃發票</h1>
+  <div class="card">
+    <button id="btn-cam">打開鏡頭</button>
+    <div id="video-wrap" class="hidden"><video id="video" playsinline muted></video><div class="hint">對準發票左邊的 QR code</div></div>
+    <label class="btn sec" for="file">鏡頭打不開？改用拍照</label>
     <input id="file" type="file" accept="image/*" capture="environment">
-    <div id="status" class="status">還沒開始。</div>
+    <div id="scan-msg" class="msg">按「打開鏡頭」開始。</div>
+    <button id="btn-go" class="hidden">不掃右邊了，直接登記</button>
   </div>
+  <button id="btn-scan-back" class="sec">返回</button>
+</section>
 
-  <div class="card" id="result" style="display:none">
-    <div class="small">發票日期</div><div class="big" id="r-date"></div>
-    <div class="small" style="margin-top:8px">總金額</div><div class="big" id="r-total"></div>
-    <div class="small" style="margin-top:8px">發票號碼　／　賣方統編</div><div id="r-inv"></div>
-    <div class="small" style="margin-top:8px">品項</div>
-    <table id="r-items"></table>
-    <div id="r-check" class="status" style="display:none"></div>
-    <button id="btn-clear" class="sec">清除，掃下一張</button>
-  </div>
-
+<!-- 登記 -->
+<section id="v-edit" class="hidden">
+  <h1 id="edit-title">登記</h1>
   <div class="card">
-    <b>沒有發票也能測</b>
-    <p class="small">把掃出來的文字貼在這裡，可以測試解析。</p>
-    <textarea id="manual" placeholder="貼上左邊 QR code 的文字"></textarea>
-    <textarea id="manual-r" placeholder="（選填）貼上右邊 QR code 的文字，開頭是 **"></textarea>
-    <button id="btn-manual" class="sec">解析貼上的文字</button>
+    <label class="f">日期</label><input id="e-date" type="date">
+    <label class="f">購買地點</label><input id="e-place" type="text" placeholder="例如：全聯、7-11" maxlength="60">
+    <div id="e-invoice" class="sub" style="margin-top:8px"></div>
   </div>
+  <div id="e-lines"></div>
+  <div class="row" style="gap:8px">
+    <button id="btn-addline" class="sec">＋ 再加一列（拆開）</button>
+    <button id="btn-splititems" class="sec hidden">依發票品項拆開</button>
+  </div>
+  <div class="sticky">
+    <div id="e-sum" class="msg"></div>
+    <button id="btn-save">存起來</button>
+    <button id="btn-edit-back" class="sec">取消</button>
+  </div>
+</section>
 
+<!-- 完成 -->
+<section id="v-done" class="hidden">
   <div class="card">
-    <b>測試回報</b>
-    <p class="small">測完請按下面按鈕，把結果貼給我。內容只有手機型號、掃描成功或失敗，沒有任何個資。</p>
-    <button id="btn-report" class="sec">複製測試回報</button>
-    <details><summary>看回報內容</summary><pre id="report" style="white-space:pre-wrap"></pre></details>
+    <h2>✅ 已儲存</h2>
+    <p>請把序號寫在紙本發票上：</p>
+    <div class="big" id="done-serials"></div>
+    <div id="done-note" class="sub"></div>
   </div>
+  <button id="btn-again">再掃一張</button>
+  <button id="btn-done-home" class="sec">回首頁</button>
+</section>
+
+<!-- 紀錄 -->
+<section id="v-records" class="hidden">
+  <div class="top"><h1>登記紀錄</h1></div>
+  <div class="row" style="margin:6px 0">
+    <button class="small sec" id="p-prev">◀</button>
+    <b id="p-label"></b>
+    <button class="small sec" id="p-next">▶</button>
+  </div>
+  <div class="card" id="rec-sum"></div>
+  <div class="card" id="rec-list"></div>
+  <button id="btn-rec-back" class="sec">返回首頁</button>
+</section>
+
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="config.js"></script>
 <script src="parser.js"></script>
-<script>
-(function () {
-  var $ = function (id) { return document.getElementById(id); };
-  var video = $('video'), stream = null, scanning = false;
-  var left = null, right = null, pending = false; // pending：已讀到左邊，還在等右邊
-  var log = []; // 測試紀錄
-
-  function setStatus(msg, cls) { var s = $('status'); s.textContent = msg; s.className = 'status ' + (cls || ''); }
-  function note(evt) { log.push(new Date().toLocaleTimeString('zh-TW') + ' ' + evt); renderReport(); }
-
-  function decodeText(code) {
-    // 以 UTF-8 為主；若含 Big5 品名，jsQR 的 data 可能亂碼，於 binaryData 重解
-    try {
-      if (code.binaryData && code.binaryData.length) {
-        var u = new TextDecoder('utf-8', { fatal: true }).decode(new Uint8Array(code.binaryData));
-        return u;
-      }
-    } catch (e) {
-      try { return new TextDecoder('big5').decode(new Uint8Array(code.binaryData)); } catch (e2) {}
-    }
-    return code.data;
-  }
-
-  // 掃整張、左半、右半（兩個 QR 通常左右並排），回傳不重複的文字
-  function scanCanvas(c, w, h) {
-    var out = [];
-    [[0, w], [0, Math.round(w * 0.5)], [Math.round(w * 0.5), w], [0, Math.round(w * 0.56)], [Math.round(w * 0.44), w]].forEach(function (r) {
-      scanImageData(c.getImageData(r[0], 0, r[1] - r[0], h)).forEach(function (t) { if (out.indexOf(t) < 0) out.push(t); });
-    });
-    return out;
-  }
-
-  function scanImageData(img) {
-    // 一張圖可能有左右兩個 QR：找到一個後蓋掉再找
-    var found = [];
-    for (var n = 0; n < 3; n++) {
-      var code = jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
-      if (!code) break;
-      found.push(decodeText(code));
-      var l = code.location, xs = [l.topLeftCorner.x, l.topRightCorner.x, l.bottomLeftCorner.x, l.bottomRightCorner.x],
-          ys = [l.topLeftCorner.y, l.topRightCorner.y, l.bottomLeftCorner.y, l.bottomRightCorner.y];
-      var x0 = Math.max(0, Math.floor(Math.min.apply(null, xs)) - 4), x1 = Math.min(img.width, Math.ceil(Math.max.apply(null, xs)) + 4);
-      var y0 = Math.max(0, Math.floor(Math.min.apply(null, ys)) - 4), y1 = Math.min(img.height, Math.ceil(Math.max.apply(null, ys)) + 4);
-      for (var y = y0; y < y1; y++) for (var x = x0; x < x1; x++) {
-        var i = (y * img.width + x) * 4; img.data[i] = img.data[i + 1] = img.data[i + 2] = 255; img.data[i + 3] = 255;
-      }
-    }
-    return found;
-  }
-
-  function accept(text) {
-    if (EInvoice.isLeft(text)) { if (!left) { left = text; note('掃到左邊 QR'); } return true; }
-    if (EInvoice.isRight(text)) { if (!right) { right = text; note('掃到右邊 QR'); } return true; }
-    return false;
-  }
-
-  function evaluate(fromPhoto) {
-    if (!left) { setStatus('還沒掃到左邊的 QR code。', 'warn'); return false; }
-    var r = EInvoice.parseInvoice(left, right);
-    if (!r) { setStatus('這個 QR code 不是電子發票。', 'warn'); note('不是發票'); left = null; return false; }
-    show(r);
-    pending = r.needRight;
-    if (r.needRight) {
-      setStatus('已讀到日期與金額。這張還有更多品項，請把鏡頭移到<b>右邊的 QR code</b>，或按「完成」。'.replace(/<[^>]+>/g, ''), 'warn');
-      return false;
-    }
-    setStatus('掃描完成！', 'ok'); note('掃描完成，品項 ' + r.items.length + '/' + (r.declaredItems || '?') + '，合計' + (r.itemsSum === r.total ? '吻合' : '不吻合'));
-    return true;
-  }
-
-  function show(r) {
-    $('result').style.display = 'block';
-    $('r-date').textContent = r.rocDate.replace(/\//g, ' 年 ').replace(/ 年 (\d\d) 年 /, ' 年 $1 月 ') + ' 日';
-    $('r-total').textContent = '$' + r.total.toLocaleString();
-    $('r-inv').textContent = r.invoiceNo.slice(0, 2) + '-' + r.invoiceNo.slice(2) + '　／　' + r.sellerId;
-    var t = $('r-items'); t.innerHTML = '<tr><th>品名</th><th class="num">數量</th><th class="num">單價</th></tr>';
-    r.items.forEach(function (it) {
-      var tr = document.createElement('tr');
-      [it.name, it.qty, it.price].forEach(function (v, i) {
-        var td = document.createElement('td'); if (i) td.className = 'num'; td.textContent = (v == null ? '' : v); tr.appendChild(td);
-      });
-      t.appendChild(tr);
-    });
-    if (!r.items.length) { var tr = document.createElement('tr'); tr.innerHTML = '<td colspan="3">這張發票沒有附品項（只有總金額）</td>'; t.appendChild(tr); }
-    var c = $('r-check'); c.style.display = 'block';
-    if (r.items.length && r.itemsSum === r.total) { c.className = 'status ok'; c.textContent = '品項加總 = 發票總額 ✔'; }
-    else if (r.items.length) { c.className = 'status warn'; c.textContent = '品項加總 ' + r.itemsSum + '，發票總額 ' + r.total + '，不一致（可能還有品項沒讀到，或有折扣）'; }
-    else { c.className = 'status warn'; c.textContent = '沒有品項可核對，只能用總金額。'; }
-  }
-
-  // ---- 鏡頭 ----
-  var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true });
-  function loop() {
-    if (!scanning) return;
-    if (video.readyState >= 2 && video.videoWidth) {
-      var w = Math.min(video.videoWidth, 1280), h = Math.round(video.videoHeight * w / video.videoWidth);
-      canvas.width = w; canvas.height = h; ctx.drawImage(video, 0, 0, w, h);
-      var found = scanCanvas(ctx, w, h);
-      var changed = false;
-      found.forEach(function (t) { var before = (left ? 1 : 0) + (right ? 1 : 0); accept(t); if (((left ? 1 : 0) + (right ? 1 : 0)) !== before) changed = true; });
-      if (changed) { if (evaluate()) { stopCam(); return; } }
-    }
-    setTimeout(function () { requestAnimationFrame(loop); }, 120);
-  }
-
-  $('btn-cam').onclick = function () {
-    if (!pending) { left = right = null; $('result').style.display = 'none'; }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      setStatus('這個瀏覽器沒有開放鏡頭，請改用下面的「拍照」。', 'warn'); note('鏡頭：瀏覽器不支援'); return;
-    }
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }, audio: false })
-      .then(function (s) {
-        stream = s; video.srcObject = s; video.play();
-        $('video-wrap').style.display = 'block'; $('btn-stop').style.display = 'block'; $('btn-cam').style.display = 'none';
-        scanning = true; setStatus('鏡頭已開啟，請對準發票左邊的 QR code。'); note('鏡頭開啟成功'); loop();
-      })
-      .catch(function (e) { setStatus('鏡頭打不開（' + e.name + '）。請檢查有沒有按「允許」，或改用「拍照」。', 'warn'); note('鏡頭失敗：' + e.name); });
-  };
-  function stopCam() {
-    scanning = false; if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); stream = null;
-    $('video-wrap').style.display = 'none'; $('btn-stop').style.display = 'none'; $('btn-cam').style.display = 'block';
-  }
-  $('btn-stop').onclick = function () { stopCam(); evaluate(); };
-
-  // ---- 拍照 ----
-  $('file').onchange = function (ev) {
-    var f = ev.target.files[0]; if (!f) return;
-    if (!pending) left = right = null;
-    setStatus('讀取中…');
-    var url = URL.createObjectURL(f), im = new Image();
-    im.onload = function () {
-      var best = [];
-      [1600, 1000, 2400].some(function (maxW) {
-        var w = Math.min(im.naturalWidth, maxW), h = Math.round(im.naturalHeight * w / im.naturalWidth);
-        canvas.width = w; canvas.height = h; ctx.drawImage(im, 0, 0, w, h);
-        scanCanvas(ctx, w, h).forEach(function (t) { accept(t); });
-        return !!left && (!EInvoice.parseInvoice(left, right).needRight);
-      });
-      URL.revokeObjectURL(url);
-      if (!left) { setStatus('照片裡讀不到發票 QR code。請靠近一點、光線亮一點、保持清楚再拍一次。', 'warn'); note('拍照：讀不到'); }
-      else { note('拍照：讀到'); evaluate(true); }
-      ev.target.value = '';
-    };
-    im.onerror = function () { setStatus('照片打不開。', 'warn'); };
-    im.src = url;
-  };
-
-  // ---- 貼上文字 ----
-  $('btn-manual').onclick = function () {
-    left = right = null; pending = false;
-    var l = $('manual').value.trim(), r = $('manual-r').value.trim();
-    if (l) accept(l); if (r) accept(r);
-    if (evaluate()) note('貼上文字：解析成功');
-  };
-
-  $('btn-clear').onclick = function () {
-    left = right = null; pending = false; $('result').style.display = 'none'; setStatus('已清除，可以掃下一張。');
-  };
-
-  // ---- 回報 ----
-  function renderReport() {
-    $('report').textContent = '手機／瀏覽器：' + navigator.userAgent + '\n' + log.join('\n');
-  }
-  $('btn-report').onclick = function () {
-    renderReport();
-    var txt = $('report').textContent;
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { setStatus('已複製，請貼給我。', 'ok'); }, function () { setStatus('複製失敗，請展開「看回報內容」手動複製。', 'warn'); });
-    else setStatus('請展開「看回報內容」手動複製。', 'warn');
-  };
-  renderReport();
-})();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
