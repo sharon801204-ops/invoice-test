@@ -244,7 +244,7 @@
   function customText(L) {
     var s = customSum(L), d = L.amount - s;
     if (!(L.amount > 0)) return '請先在下面填這一列的金額';
-    return d === 0 ? '合計 ' + money(s) + '　等於金額 ✔' : '合計 ' + money(s) + '　' + (d > 0 ? '還差 ' : '多了 ') + money(Math.abs(d));
+    return d === 0 ? '已分配完畢 ✔　合計 ' + money(s) + ' 等於金額' : '尚未分配完畢：合計 ' + money(s) + '，' + (d > 0 ? '還差 ' : '多了 ') + money(Math.abs(d));
   }
 
   function renderLines() {
@@ -271,7 +271,7 @@
             '<input type="number" inputmode="numeric" data-custom="' + esc(p.code) + '" style="width:130px" value="' + (L.custom[p.code] || '') + '"></div>';
         });
         html += '<div class="msg ' + customCls(L) + '" data-customsum style="margin-top:8px">' + customText(L) + '</div>';
-        html += '<button class="small sec" data-act="even" style="margin-top:8px">改回平均分</button>';
+        html += '<div style="display:flex;gap:8px;margin-top:8px"><button class="small sec" data-act="custom">重新平均分配</button><button class="small sec" data-act="even">改回平均分模式</button></div>';
       } else if (L.type === '共同') {
         var ti = tailInfo(L);
         html += '<label class="f">誰分攤（點一下可取消或加入）</label><div class="chips">';
@@ -280,14 +280,23 @@
         });
         html += '</div>';
         if (ti.parts.length && L.amount > 0) {
-          html += '<div class="sub" style="margin-top:6px">每人 ' + money(ti.base) + '（' + ti.parts.length + ' 人）';
+          var tl = L.tail && ti.parts.indexOf(L.tail) >= 0 ? L.tail : ti.parts[ti.parts.length - 1];
+          html += '<table class="tbl"><tr><th>對象</th><th class="r">分攤金額</th></tr>';
+          var tot = 0;
+          ti.parts.forEach(function (c) {
+            var v = ti.base + (c === tl ? ti.tailAmt : 0); tot += v;
+            html += '<tr><td>' + esc(pname(c)) + '</td><td class="r">' + money(v) +
+              (c === tl && ti.tailAmt !== 0 ? ' <span class="tag">含尾差 ' + (ti.tailAmt > 0 ? '+' : '') + ti.tailAmt + '</span>' : '') + '</td></tr>';
+          });
+          html += '<tr class="sumrow"><td>合計（' + ti.parts.length + ' 人）</td><td class="r">' + money(tot) + '</td></tr></table>';
+          html += '<div class="msg ok" style="margin-top:8px">' + (tot === L.amount ? '已分配完畢 ✔　合計等於金額 ' + money(L.amount) : '尚未分配完畢') + '</div>';
           if (ti.tailAmt !== 0) {
-            var tl = L.tail && ti.parts.indexOf(L.tail) >= 0 ? L.tail : ti.parts[ti.parts.length - 1];
-            html += '，尾差 ' + (ti.tailAmt > 0 ? '+' : '') + ti.tailAmt + ' 元歸給：<select data-field="tail">';
+            html += '<div class="sub" style="margin-top:6px">尾差 ' + (ti.tailAmt > 0 ? '+' : '') + ti.tailAmt + ' 元歸給：<select data-field="tail">';
             ti.parts.forEach(function (c) { html += '<option value="' + esc(c) + '"' + (c === tl ? ' selected' : '') + '>' + esc(pname(c)) + '</option>'; });
-            html += '</select>';
+            html += '</select></div>';
           }
-          html += '</div>';
+        } else if (L.type === '共同') {
+          html += '<div class="msg warn" style="margin-top:8px">請先填金額，並選好誰分攤</div>';
         }
         html += '<button class="small sec" data-act="custom" style="margin-top:8px">自訂每人金額（不平均分）</button>';
       }

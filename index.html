@@ -37,6 +37,12 @@
   .msg.ok { background:#e4f5ec; color:var(--ok); } .msg.warn { background:#fdf1e2; color:var(--warn); } .msg.bad { background:#fde8e6; color:var(--bad); }
   .row { display:flex; justify-content:space-between; gap:8px; align-items:center; }
   .sticky { position:sticky; bottom:0; background:var(--bg); padding:8px 0 calc(8px + env(safe-area-inset-bottom)); }
+  .tbl { width:100%; border-collapse:collapse; margin-top:10px; font-size:17px; }
+  .tbl th { text-align:left; font-size:14px; color:var(--muted); font-weight:500; padding:4px 6px; border-bottom:1px solid var(--line); }
+  .tbl td { padding:8px 6px; border-bottom:1px solid var(--line); }
+  .tbl .r { text-align:right; }
+  .tbl .sumrow td { font-weight:700; border-top:2px solid var(--line); border-bottom:0; }
+  .tag { display:inline-block; background:#FFF1DC; color:#8A4B00; border-radius:8px; padding:1px 8px; font-size:13px; font-weight:500; }
   .rec { border-bottom:1px solid var(--line); padding:8px 0; font-size:16px; }
   .rec .t { color:var(--muted); font-size:14px; }
   .big { font-size:30px; font-weight:700; }
